@@ -1,0 +1,634 @@
+openapi: 3.1.0
+info: {title: Api, version: 0.1.0, description: API specification}
+servers:
+- {url: /api, description: Base API path}
+tags:
+- {name: health, description: Health operations}
+- {name: jobs, description: Job discovery and application tracking}
+- {name: watchlist, description: Follow companies}
+- {name: alerts, description: Saved job alert rules}
+- {name: insights, description: Job search activity summaries}
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        '200':
+          description: Healthy
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/HealthStatus'}
+  /jobs:
+    get:
+      operationId: listJobs
+      tags: [jobs]
+      summary: List jobs for the signed-in user
+      parameters:
+      - name: q
+        in: query
+        schema: {type: string}
+      - name: role
+        in: query
+        schema: {type: string}
+      - name: location
+        in: query
+        schema: {type: string}
+      - name: company
+        in: query
+        schema: {type: string}
+      - name: batchYear
+        in: query
+        schema: {type: integer}
+      - name: newOnly
+        in: query
+        schema: {type: boolean}
+      - name: experienceLevel
+        in: query
+        schema:
+          type: string
+          enum: &id001 [internship, fresher, junior, mid, senior, unspecified]
+      - name: includeClosed
+        in: query
+        schema: {type: boolean}
+      - name: followedOnly
+        in: query
+        description: Only roles from companies the user follows
+        schema: {type: boolean}
+      - name: includeUnspecified
+        in: query
+        description: With an experienceLevel, also return roles that state no experience requirement
+        schema: {type: boolean}
+      - name: limit
+        in: query
+        schema: {type: integer, minimum: 1, maximum: 500}
+      - name: offset
+        in: query
+        schema: {type: integer, minimum: 0}
+      - name: status
+        in: query
+        description: One status; "pipeline" means applied, oa, interview or offer; "tracked" means saved through rejected
+        schema:
+          type: string
+          enum: [new, saved, applied, oa, interview, offer, rejected, hidden, pipeline, tracked]
+      responses:
+        '200':
+          description: Matching jobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/Job'}
+    post:
+      operationId: createJob
+      tags: [jobs]
+      summary: Add a job to the user's feed
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/JobInput'}
+      responses:
+        '201':
+          description: Created job
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Job'}
+  /jobs/{id}:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema: {type: integer}
+    get:
+      operationId: getJob
+      tags: [jobs]
+      summary: Get a job and its tracking details
+      responses:
+        '200':
+          description: Job details
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Job'}
+        '404': {description: Job not found}
+    patch:
+      operationId: updateJob
+      tags: [jobs]
+      summary: Update a job or its application tracking details
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/JobUpdate'}
+      responses:
+        '200':
+          description: Updated job
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Job'}
+        '404': {description: Job not found}
+    delete:
+      operationId: deleteJob
+      tags: [jobs]
+      summary: Remove a job from the user's tracker
+      responses:
+        '204': {description: Deleted}
+        '404': {description: Job not found}
+  /jobs/{id}/status:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema: {type: integer}
+    patch:
+      operationId: updateJobStatus
+      tags: [jobs]
+      summary: Move a job through the application pipeline or hide it
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/JobStatusInput'}
+      responses:
+        '200':
+          description: Updated job
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Job'}
+        '404': {description: Job not found}
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [jobs]
+      summary: Get current job-search totals
+      responses:
+        '200':
+          description: Dashboard totals
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DashboardSummary'}
+  /watchlist:
+    get:
+      operationId: listWatchlist
+      tags: [watchlist]
+      summary: List followed companies
+      responses:
+        '200':
+          description: Followed companies
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/WatchlistCompany'}
+    post:
+      operationId: addWatchlistCompany
+      tags: [watchlist]
+      summary: Follow a company
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/WatchlistInput'}
+      responses:
+        '201':
+          description: Followed company
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/WatchlistCompany'}
+  /watchlist/{id}:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema: {type: integer}
+    delete:
+      operationId: removeWatchlistCompany
+      tags: [watchlist]
+      summary: Stop following a company
+      responses:
+        '204': {description: Removed}
+        '404': {description: Company not found}
+  /alerts:
+    get:
+      operationId: listAlerts
+      tags: [alerts]
+      summary: List saved alert rules
+      responses:
+        '200':
+          description: Alert rules
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/AlertRule'}
+    post:
+      operationId: createAlert
+      tags: [alerts]
+      summary: Save an alert rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AlertRuleInput'}
+      responses:
+        '201':
+          description: Saved alert rule
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AlertRule'}
+  /alerts/{id}:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema: {type: integer}
+    patch:
+      operationId: updateAlert
+      tags: [alerts]
+      summary: Update an alert rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AlertRuleUpdate'}
+      responses:
+        '200':
+          description: Updated alert rule
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AlertRule'}
+        '404': {description: Alert not found}
+    delete:
+      operationId: deleteAlert
+      tags: [alerts]
+      summary: Delete an alert rule
+      responses:
+        '204': {description: Deleted}
+        '404': {description: Alert not found}
+  /insights:
+    get:
+      operationId: getInsights
+      tags: [insights]
+      summary: Summarize posting and application activity
+      responses:
+        '200':
+          description: Search insights
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Insights'}
+  /watchlist/sync:
+    post:
+      operationId: syncWatchlist
+      tags: [watchlist]
+      summary: Check the followed companies for new jobs now
+      responses:
+        '200':
+          description: Sync result
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SyncResult'}
+  /jobs/locations:
+    get:
+      operationId: listJobLocations
+      tags: [jobs]
+      summary: Distinct job locations (most common first)
+      responses:
+        '200':
+          description: Locations
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {type: string}
+  /watchlist/{id}/follow:
+    patch:
+      operationId: setCompanyFollowed
+      tags: [watchlist]
+      summary: Follow or unfollow a company without removing its jobs
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: {type: integer}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/FollowInput'}
+      responses:
+        '200':
+          description: The updated company
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/WatchlistCompany'}
+  /watchlist/starter:
+    post:
+      operationId: addStarterCompanies
+      tags: [watchlist]
+      summary: Follow a set of popular companies (their jobs are fetched in the background)
+      responses:
+        '202':
+          description: How many companies were added
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [added]
+                properties:
+                  added: {type: integer}
+  /profile:
+    get:
+      operationId: getProfile
+      tags: [jobs]
+      summary: Get the signed-in user's default experience level
+      responses:
+        '200':
+          description: Profile
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Profile'}
+    put:
+      operationId: updateProfile
+      tags: [jobs]
+      summary: Set the default experience level
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Profile'}
+      responses:
+        '200':
+          description: Profile
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Profile'}
+  /jobs/demo:
+    post:
+      operationId: loadDemoJobs
+      tags: [jobs]
+      summary: Add clearly marked demo roles so the app can be explored
+      responses:
+        '200':
+          description: Demo roles added
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DemoResult'}
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status: {type: string}
+      required: [status]
+    Job:
+      type: object
+      required: [id, title, company, companyInitials, location, experience, experienceLevel, summary, description, skills, applicationUrl, source,
+        postedAt, firstSeenAt, lastSeenAt, status, fresherMatch, isSample, createdAt, updatedAt]
+      properties:
+        id: {type: integer}
+        title: {type: string}
+        company: {type: string}
+        companyInitials: {type: string}
+        location: {type: string}
+        experience: {type: string}
+        batchYear:
+          type: [integer, 'null']
+        summary: {type: string}
+        description: {type: string}
+        skills:
+          type: array
+          items: {type: string}
+        applicationUrl: {type: string}
+        postedAt: {type: string, format: date-time}
+        firstSeenAt: {type: string, format: date-time}
+        status:
+          type: string
+          enum: [new, saved, applied, oa, interview, offer, rejected, hidden]
+        fresherMatch: {type: integer, minimum: 0, maximum: 100}
+        isSample: {type: boolean}
+        followUpDate:
+          type: [string, 'null']
+          format: date
+        notes:
+          type: [string, 'null']
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+        experienceLevel:
+          type: string
+          enum: *id001
+        minYears:
+          type: [integer, 'null']
+        maxYears:
+          type: [integer, 'null']
+        source:
+          type: string
+          enum: [manual, demo, greenhouse, lever, ashby, web]
+        companyId:
+          type: [integer, 'null']
+        lastSeenAt: {type: string, format: date-time}
+        closedAt:
+          type: [string, 'null']
+          format: date-time
+    JobInput:
+      type: object
+      required: [title, company, location, summary, description, applicationUrl]
+      properties:
+        title: {type: string, minLength: 1}
+        company: {type: string, minLength: 1}
+        companyInitials: {type: string}
+        location: {type: string, minLength: 1}
+        experience: {type: string}
+        batchYear:
+          type: [integer, 'null']
+        summary: {type: string}
+        description: {type: string}
+        skills:
+          type: array
+          items: {type: string}
+        applicationUrl: {type: string, format: uri}
+        postedAt: {type: string, format: date-time}
+        fresherMatch: {type: integer, minimum: 0, maximum: 100}
+        experienceLevel:
+          type: string
+          enum: *id001
+    JobUpdate:
+      type: object
+      properties:
+        title: {type: string, minLength: 1}
+        company: {type: string, minLength: 1}
+        companyInitials: {type: string}
+        location: {type: string}
+        experience: {type: string}
+        batchYear:
+          type: [integer, 'null']
+        summary: {type: string}
+        description: {type: string}
+        skills:
+          type: array
+          items: {type: string}
+        applicationUrl: {type: string, format: uri}
+        followUpDate:
+          type: [string, 'null']
+          format: date
+        notes:
+          type: [string, 'null']
+        experienceLevel:
+          type: string
+          enum: *id001
+    JobStatusInput:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [new, saved, applied, oa, interview, offer, rejected, hidden]
+    DashboardSummary:
+      type: object
+      required: [newJobs, savedJobs, activeApplications, interviews, offers, followedCompanies]
+      properties:
+        newJobs: {type: integer}
+        savedJobs: {type: integer}
+        activeApplications: {type: integer}
+        interviews: {type: integer}
+        offers: {type: integer}
+        followedCompanies: {type: integer}
+    WatchlistCompany:
+      type: object
+      required: [id, name, initials, website, source, boardToken, rolesOpen, lastCheckedAt, lastStatus, lastError, createdAt, followed]
+      properties:
+        id: {type: integer}
+        followed: {type: boolean}
+        name: {type: string}
+        initials: {type: string}
+        website:
+          type: [string, 'null']
+        rolesOpen: {type: integer}
+        createdAt: {type: string, format: date-time}
+        source:
+          type: [string, 'null']
+          enum: [greenhouse, lever, ashby, web, null]
+        boardToken:
+          type: [string, 'null']
+        lastCheckedAt:
+          type: [string, 'null']
+          format: date-time
+        lastStatus:
+          type: [string, 'null']
+          enum: [ok, error, null]
+        lastError:
+          type: [string, 'null']
+    WatchlistInput:
+      type: object
+      properties:
+        name: {type: string}
+        careersUrl:
+          type: [string, 'null']
+        source:
+          type: string
+          enum: [greenhouse, lever, ashby, web]
+        boardToken: {type: string}
+        website:
+          type: [string, 'null']
+    AlertRule:
+      type: object
+      required: [id, role, locations, channels, enabled, matchingJobsLastWeek, deliveryConnected, createdAt, experienceLevel]
+      properties:
+        id: {type: integer}
+        role: {type: string}
+        locations:
+          type: array
+          items: {type: string}
+        channels:
+          type: array
+          items:
+            type: string
+            enum: [email, telegram]
+        enabled: {type: boolean}
+        matchingJobsLastWeek: {type: integer}
+        deliveryConnected: {type: boolean}
+        createdAt: {type: string, format: date-time}
+        experienceLevel:
+          type: string
+          enum: [any, internship, fresher, junior, mid, senior]
+    AlertRuleInput:
+      type: object
+      required: [role, locations, channels]
+      properties:
+        role: {type: string, minLength: 1}
+        locations:
+          type: array
+          items: {type: string}
+        channels:
+          type: array
+          items:
+            type: string
+            enum: [email, telegram]
+        experienceLevel:
+          type: string
+          enum: [any, internship, fresher, junior, mid, senior]
+    AlertRuleUpdate:
+      type: object
+      properties:
+        role: {type: string, minLength: 1}
+        locations:
+          type: array
+          items: {type: string}
+        channels:
+          type: array
+          items:
+            type: string
+            enum: [email, telegram]
+        enabled: {type: boolean}
+        experienceLevel:
+          type: string
+          enum: [any, internship, fresher, junior, mid, senior]
+    Metric:
+      type: object
+      required: [label, value]
+      properties:
+        label: {type: string}
+        value: {type: number}
+    Insights:
+      type: object
+      required: [postingsByDay, topCompanies, postingHours, totalJobs, applicationRate, byLevel]
+      properties:
+        postingsByDay:
+          type: array
+          items: {$ref: '#/components/schemas/Metric'}
+        topCompanies:
+          type: array
+          items: {$ref: '#/components/schemas/Metric'}
+        postingHours:
+          type: array
+          items: {$ref: '#/components/schemas/Metric'}
+        totalJobs: {type: integer}
+        applicationRate: {type: number}
+        byLevel:
+          type: array
+          items: {$ref: '#/components/schemas/Metric'}
+    FollowInput:
+      type: object
+      required: [followed]
+      properties:
+        followed: {type: boolean}
+    SyncResult:
+      type: object
+      required: [checked, newJobs, errors]
+      properties:
+        checked: {type: integer}
+        newJobs: {type: integer}
+        errors: {type: integer}
+    Profile:
+      type: object
+      required: [experienceLevel]
+      properties:
+        experienceLevel:
+          type: string
+          enum: [any, internship, fresher, junior, mid, senior]
+    DemoResult:
+      type: object
+      required: [added]
+      properties:
+        added: {type: integer}

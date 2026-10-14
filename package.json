@@ -1,0 +1,24 @@
+{
+  "name": "job-watcher",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Watches company career pages and shows new jobs for your experience level.",
+  "scripts": {
+    "preinstall": "sh -c 'case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm: npm i -g pnpm, then pnpm install\" >&2; exit 1 ;; esac'",
+    "dev": "pnpm --parallel --filter @workspace/api-server --filter @workspace/web run dev",
+    "dev:api": "pnpm --filter @workspace/api-server run dev",
+    "dev:web": "pnpm --filter @workspace/web run dev",
+    "db:push": "pnpm --filter @workspace/db run push",
+    "codegen": "pnpm --filter @workspace/api-spec run codegen",
+    "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "start": "pnpm --filter @workspace/api-server run start",
+    "test": "pnpm --filter @workspace/api-server run test",
+    "typecheck:libs": "tsc --build",
+    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./apps/**\" --if-present run typecheck"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.6",
+    "typescript": "~5.9.3"
+  }
+}
