@@ -3,6 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <!-- Fixes the order of the style layers so the sign-in box looks the same on the live site as on localhost. -->
+    <style>@layer theme, base, clerk, components, utilities;</style>
     <title>Job Watcher</title>
     <meta name="description" content="Watches company career pages and shows new jobs for your experience level." />
     <meta name="robots" content="index, follow" />

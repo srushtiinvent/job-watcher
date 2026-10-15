@@ -476,3 +476,16 @@ a.job-title:hover { text-decoration: underline; text-underline-offset: 3px; }
 .link-button { border: 0; background: transparent; padding: 0; margin-left: 4px; color: hsl(var(--primary)); font: inherit; font-size: 12px; cursor: pointer; }
 .link-button:hover { text-decoration: underline; }
 .load-more { justify-self: center; margin: 8px auto 4px; }
+
+/* Phone layout: keep the filter bar and tabs inside the screen instead of stretching the page sideways. */
+@media (max-width: 767px) {
+  html, body { overflow-x: hidden; }
+  .main-column, .page-area { min-width: 0; max-width: 100%; }
+  .filter-panel { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .stage-tabs { grid-column: 1 / -1; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .stage-tabs::-webkit-scrollbar { display: none; }
+  .stage-tab { flex: 0 0 auto; white-space: nowrap; }
+  .filter-reset { grid-column: 1 / -1; }
+  .feed-intro { flex-wrap: wrap; gap: 6px; }
+  .level-pills { max-width: 100%; }
+}
