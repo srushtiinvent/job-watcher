@@ -422,6 +422,9 @@ function FeedPage() {
       <div className="level-pills" role="radiogroup" aria-label="Experience level">
         {[{ value: 'any', label: 'Any level', hint: 'Everything' }, ...LEVELS].map(l => <button key={l.value} role="radio" aria-checked={level === l.value} title={l.hint} className={`level-pill ${level === l.value ? 'level-pill-active' : ''}`} onClick={() => { setLevel(l.value); setLevelTouched(true); }} data-testid={`level-${l.value}`}>{l.label}<small>{l.value === 'any' ? '' : l.hint.includes('years') ? l.hint : ''}</small></button>)}
       </div>
+      <select className="level-select" aria-label="Experience level" value={level} onChange={e => { setLevel(e.target.value); setLevelTouched(true); }} data-testid="select-level">
+        {[{ value: 'any', label: 'Any level', hint: '' }, ...LEVELS].map(l => <option key={l.value} value={l.value}>{l.label}{l.hint.includes('years') ? ` (${l.hint})` : ''}</option>)}
+      </select>
       {level !== 'any' && level !== 'unspecified' && <label className="check-label level-extra"><input type="checkbox" checked={includeUnspecified} onChange={e => setIncludeUnspecified(e.target.checked)} data-testid="check-include-unspecified" />Also show roles that don’t state experience</label>}
     </section>
     <section className="filter-panel panel" aria-label="Filter jobs">
